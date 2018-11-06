@@ -15,11 +15,17 @@ isKanji c = (0x4E00 <= i && i <= 0x9FFF)      -- CJK Unified Ideographs
             || i == 0x30F6 -- 'ヶ' Katakana Letter Small KE
   where i = fromEnum c
 
+stringToInlines :: String -> [Inline]
+stringToInlines [] = []
+stringToInlines (' ' : xs) = Space : stringToInlines xs
+stringToInlines (s : xs) = case span (/= ' ') xs of
+                             (xs0, xs1) -> Str (s : xs0) : stringToInlines xs1
+
 transformAozoraRubyInString
   :: (String -> String -> Inline) -- ^ Function to build a ruby in the target format
   -> String                       -- ^ Input text
   -> [Inline]
-transformAozoraRubyInString makeSimpleRuby s = loop "" s
+transformAozoraRubyInString makeSimpleRuby = loop ""
   where
     loop :: String -> String -> [Inline]
     loop acc [] = prependRev acc []
@@ -32,7 +38,7 @@ transformAozoraRubyInString makeSimpleRuby s = loop "" s
       = prependRev acc $ makeSimpleRuby base read : loop "" rest
 
       -- Since there is no matching '《 》', no need to worry for ruby text
-      | otherwise = [Str (reverse acc ++ s)]
+      | otherwise = stringToInlines (reverse acc ++ s)
 
     -- Ruby notation without explicit starting mark
     -- e.g. "多項式《たこうしき》"
@@ -45,13 +51,31 @@ transformAozoraRubyInString makeSimpleRuby s = loop "" s
     loop acc (x:xs) = loop (x:acc) xs
 
     prependRev :: String -> [Inline] -> [Inline]
-    prependRev "" xs = xs
-    prependRev s xs = Str (reverse s) : xs
+    prependRev s xs = stringToInlines (reverse s) ++ xs
+
+extractTextual :: [Inline] -> (String,[Inline])
+extractTextual = loop ""
+  where loop s0 (Str s : xs) = loop (s0 ++ s) xs
+        loop s0 (Space : xs) = loop (s0 ++ " ") xs
+        loop s0 xs = (s0, xs)
+
+transformAozoraRubyInInlines
+  :: (String -> String -> Inline) -- ^ Function to build a ruby in the target format
+  -> [Inline]                     -- ^ Input
+  -> [Inline]
+transformAozoraRubyInInlines makeSimpleRuby = loop
+  where
+    loop [] = []
+    loop xs = case extractTextual xs of
+                (str@(_:_), rest) -> transformAozoraRubyInString makeSimpleRuby str ++ rest
+                ("", x : xss) -> x : loop xss
+                (_, _) -> [] -- should not reach here
 
 -- | Build a LaTeX text for ruby text
 makeSimpleRubyLaTeX :: String -> String -> Inline
 makeSimpleRubyLaTeX base read = RawInline (Format "latex")
                                 ("\\ruby{" ++ base ++ "}{" ++ read ++ "}")
+                                -- Should escape special characters?
 
 -- | Build a HTML text for ruby text
 makeSimpleRubyHTML :: String -> String -> Inline
@@ -59,13 +83,13 @@ makeSimpleRubyHTML base read = RawInline (Format "html")
                                ("<ruby>" ++ escapeStringForXML base ++ "<rp>《</rp><rt>" ++ escapeStringForXML read ++ "</rt><rp>》</rp></ruby>")
 
 -- | Convert text in ruby
-aozoraRubyFilter :: Maybe Format -> Inline -> [Inline]
-aozoraRubyFilter (Just (Format "latex")) (Str s) = transformAozoraRubyInString makeSimpleRubyLaTeX s
-aozoraRubyFilter (Just (Format "html"))  (Str s) = transformAozoraRubyInString makeSimpleRubyHTML s
-aozoraRubyFilter (Just (Format "html5")) (Str s) = transformAozoraRubyInString makeSimpleRubyHTML s
-aozoraRubyFilter (Just (Format "epub"))  (Str s) = transformAozoraRubyInString makeSimpleRubyHTML s
-aozoraRubyFilter (Just (Format "epub3")) (Str s) = transformAozoraRubyInString makeSimpleRubyHTML s
-aozoraRubyFilter _ x = [x]
+aozoraRubyFilter :: Maybe Format -> [Inline] -> [Inline]
+aozoraRubyFilter (Just (Format "latex")) = transformAozoraRubyInInlines makeSimpleRubyLaTeX
+aozoraRubyFilter (Just (Format "html"))  = transformAozoraRubyInInlines makeSimpleRubyHTML
+aozoraRubyFilter (Just (Format "html5")) = transformAozoraRubyInInlines makeSimpleRubyHTML
+aozoraRubyFilter (Just (Format "epub"))  = transformAozoraRubyInInlines makeSimpleRubyHTML
+aozoraRubyFilter (Just (Format "epub3")) = transformAozoraRubyInInlines makeSimpleRubyHTML
+aozoraRubyFilter _ = id
 
 escapeCharForXML :: Char -> String
 escapeCharForXML c = case c of
