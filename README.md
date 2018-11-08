@@ -31,7 +31,6 @@ $ pandoc --filter pandoc-aozora-ruby-filter -o foo.html foo.md
 最小｜多項式《たこうしき》
 
 ホム集合《セット》
-
 ```
 
 漢字として扱われる文字は、
@@ -65,3 +64,7 @@ HTML系 (`html`, `html5`, `epub`, `epub3`) とLaTeX (`latex`) に対応してい
 
 LaTeXの場合は、`\ruby`コマンドを提供するLaTeXパッケージを別途読み込んでください。
 例：`okumacro`, `pxrubrica`, `luatexja-ruby`
+
+## ライセンス
+
+The MIT License

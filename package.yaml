@@ -1,7 +1,7 @@
 name:                pandoc-aozora-ruby
 version:             0.1.0.0
 github:              "minoki/pandoc-aozora-ruby"
-license:             BSD3
+license:             MIT
 author:              "ARATA Mizuki"
 maintainer:          "minorinoki@gmail.com"
 copyright:           "2018 ARATA Mizuki"
