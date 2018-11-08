@@ -67,7 +67,7 @@ transformAozoraRubyInInlines makeSimpleRuby = loop
   where
     loop [] = []
     loop xs = case extractTextual xs of
-                (str@(_:_), rest) -> transformAozoraRubyInString makeSimpleRuby str ++ rest
+                (str@(_:_), rest) -> transformAozoraRubyInString makeSimpleRuby str ++ loop rest
                 ("", x : xss) -> x : loop xss
                 (_, _) -> [] -- should not reach here
 
