@@ -1,5 +1,8 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Text.Pandoc.Filter.AozoraRuby where
 import Text.Pandoc.Definition
+import Data.String
+import TextCompat
 -- import Text.Pandoc.XML (escapeStringForXML)
 -- depending on the entire 'pandoc' package just for a single function is overkill...
 
@@ -19,7 +22,7 @@ stringToInlines :: String -> [Inline]
 stringToInlines [] = []
 stringToInlines (' ' : xs) = Space : stringToInlines xs
 stringToInlines (s : xs) = case span (/= ' ') xs of
-                             (xs0, xs1) -> Str (s : xs0) : stringToInlines xs1
+                             (xs0, xs1) -> Str (fromString (s : xs0)) : stringToInlines xs1
 
 transformAozoraRubyInString
   :: (String -> String -> Inline) -- ^ Function to build a ruby in the target format
@@ -55,9 +58,9 @@ transformAozoraRubyInString makeSimpleRuby = loop ""
 
 extractTextual :: [Inline] -> (String,[Inline])
 extractTextual = loop ""
-  where loop s0 (Str s : xs) = loop (s0 ++ s) xs
-        loop s0 (Space : xs) = loop (s0 ++ " ") xs
-        loop s0 xs = (s0, xs)
+  where loop s0 (Str s : xs) = loop (s0 <> s) xs
+        loop s0 (Space : xs) = loop (s0 <> " ") xs
+        loop s0 xs = (toString s0, xs)
 
 transformAozoraRubyInInlines
   :: (String -> String -> Inline) -- ^ Function to build a ruby in the target format
@@ -74,13 +77,13 @@ transformAozoraRubyInInlines makeSimpleRuby = loop
 -- | Build a LaTeX text for ruby text
 makeSimpleRubyLaTeX :: String -> String -> Inline
 makeSimpleRubyLaTeX base read = RawInline (Format "latex")
-                                ("\\ruby{" ++ base ++ "}{" ++ read ++ "}")
+                                ("\\ruby{" <> fromString base <> "}{" <> fromString read <> "}")
                                 -- Should escape special characters?
 
 -- | Build a HTML text for ruby text
 makeSimpleRubyHTML :: String -> String -> Inline
 makeSimpleRubyHTML base read = RawInline (Format "html")
-                               ("<ruby>" ++ escapeStringForXML base ++ "<rp>《</rp><rt>" ++ escapeStringForXML read ++ "</rt><rp>》</rp></ruby>")
+                               ("<ruby>" <> fromString (escapeStringForXML base) <> "<rp>《</rp><rt>" <> fromString (escapeStringForXML read) <> "</rt><rp>》</rp></ruby>")
 
 -- | Convert text in ruby
 aozoraRubyFilter :: Maybe Format -> [Inline] -> [Inline]

@@ -21,12 +21,14 @@ description:         Please see the README on GitHub at <https://github.com/mino
 
 dependencies:
 - base >= 4.7 && < 5
+- text
 - pandoc-types >= 1.17.2 # pandoc-types 1.17.2 adds 'Walkable [Inline] Pandoc' instance
 # - pandoc >= 1.18       # pandoc 1.18 is the minimum version compatible with pandoc-types 1.17.2
 
 
 library:
   source-dirs: src
+  other-modules: TextCompat
 
 executables:
   pandoc-aozora-ruby-filter:
